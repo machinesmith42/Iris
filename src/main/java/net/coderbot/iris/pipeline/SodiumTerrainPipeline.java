@@ -4,6 +4,7 @@ import java.util.Optional;
 import java.util.function.IntFunction;
 
 import net.coderbot.iris.Iris;
+import net.coderbot.iris.IrisLogging;
 import net.coderbot.iris.gl.program.ProgramBuilder;
 import net.coderbot.iris.gl.program.ProgramSamplers;
 import net.coderbot.iris.gl.program.ProgramUniforms;
@@ -15,14 +16,16 @@ import net.coderbot.iris.shaderpack.transform.Transformations;
 import net.coderbot.iris.uniforms.CommonUniforms;
 import net.coderbot.iris.uniforms.SamplerUniforms;
 import net.coderbot.iris.uniforms.builtin.BuiltinReplacementUniforms;
-import net.fabricmc.loader.api.FabricLoader;
 
 public class SodiumTerrainPipeline {
 	String terrainVertex;
+	String terrainGeometry;
 	String terrainFragment;
 	String translucentVertex;
+	String translucentGeometry;
 	String translucentFragment;
 	String shadowVertex;
+	String shadowGeometry;
 	String shadowFragment;
 	//GlFramebuffer framebuffer;
 	ProgramSet programSet;
@@ -40,16 +43,19 @@ public class SodiumTerrainPipeline {
 
 		terrainSource.ifPresent(sources -> {
 			terrainVertex = sources.getVertexSource().orElse(null);
+			terrainGeometry = sources.getGeometrySource().orElse(null);
 			terrainFragment = sources.getFragmentSource().orElse(null);
 		});
 
 		translucentSource.ifPresent(sources -> {
 			translucentVertex = sources.getVertexSource().orElse(null);
+			translucentGeometry = sources.getGeometrySource().orElse(null);
 			translucentFragment = sources.getFragmentSource().orElse(null);
 		});
 
 		shadowSource.ifPresent(sources -> {
 			shadowVertex = sources.getVertexSource().orElse(null);
+			shadowGeometry = sources.getGeometrySource().orElse(null);
 			shadowFragment = sources.getFragmentSource().orElse(null);
 		});
 
@@ -123,7 +129,7 @@ public class SodiumTerrainPipeline {
 
 		new BuiltinUniformReplacementTransformer("a_LightCoord").apply(transformations);
 
-		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+		if (IrisLogging.ENABLE_SPAM) {
 			System.out.println("Final patched vertex source:");
 			System.out.println(transformations);
 		}
@@ -151,7 +157,7 @@ public class SodiumTerrainPipeline {
 		ProgramBuilder.MACRO_CONSTANTS.getDefineStrings().forEach(defineString ->
 				transformations.injectLine(Transformations.InjectionPoint.DEFINES, defineString + "\n"));
 
-		if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
+		if (IrisLogging.ENABLE_SPAM) {
 			System.out.println("Final patched fragment source:");
 			System.out.println(transformations);
 		}
@@ -163,6 +169,10 @@ public class SodiumTerrainPipeline {
 		return Optional.ofNullable(terrainVertex);
 	}
 
+	public Optional<String> getTerrainGeometryShaderSource() {
+		return Optional.ofNullable(terrainGeometry);
+	}
+
 	public Optional<String> getTerrainFragmentShaderSource() {
 		return Optional.ofNullable(terrainFragment);
 	}
@@ -171,12 +181,20 @@ public class SodiumTerrainPipeline {
 		return Optional.ofNullable(translucentVertex);
 	}
 
+	public Optional<String> getTranslucentGeometryShaderSource() {
+		return Optional.ofNullable(translucentGeometry);
+	}
+
 	public Optional<String> getTranslucentFragmentShaderSource() {
 		return Optional.ofNullable(translucentFragment);
 	}
 
 	public Optional<String> getShadowVertexShaderSource() {
 		return Optional.ofNullable(shadowVertex);
+	}
+
+	public Optional<String> getShadowGeometryShaderSource() {
+		return Optional.ofNullable(shadowGeometry);
 	}
 
 	public Optional<String> getShadowFragmentShaderSource() {
@@ -189,7 +207,7 @@ public class SodiumTerrainPipeline {
 		WorldRenderingPipeline pipeline = Iris.getPipelineManager().getPipeline();
 		CommonUniforms.addCommonUniforms(uniforms, programSet.getPack().getIdMap(), programSet.getPackDirectives(), ((DeferredWorldRenderingPipeline) pipeline).getUpdateNotifier());
 		SamplerUniforms.addCommonSamplerUniforms(uniforms);
-		SamplerUniforms.addWorldSamplerUniforms(uniforms);
+		SamplerUniforms.addLevelSamplerUniforms(uniforms);
 		SamplerUniforms.addDepthSamplerUniforms(uniforms);
 		BuiltinReplacementUniforms.addBuiltinReplacementUniforms(uniforms);
 
